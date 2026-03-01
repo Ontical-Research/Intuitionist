@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Buddy — UX Mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --paper-bg: #fefcf8;
+    --paper-text: #2c2416;
+    --tactic-bg: #1e1e2e;
+    --tactic-text: #cdd6f4;
+    --chat-bg: #f5f3ee;
+    --accent: #7c5cbf;
+    --accent-light: #ede8f5;
+    --contradiction: #c44;
+    --contradiction-bg: #fdf0f0;
+    --case-border: #8b7355;
+    --case-bg: #faf7f2;
+    --hypothesis-bg: #f0ede6;
+    --qed-color: #555;
+    --keyword: #cba6f7;
+    --tactic-name: #89b4fa;
+    --tactic-comment: #6c7086;
+    --tactic-string: #a6e3a1;
+    --tactic-number: #fab387;
+    --tactic-type: #f9e2af;
+    --cursor-color: #f5e0dc;
+    --gutter: #313244;
+    --line-active: rgba(255,255,255,0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e4dc;
+    color: var(--paper-text);
+    font-family: 'Crimson Pro', 'Georgia', serif;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .page-title {
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 2rem;
+  }
+  .page-title em {
+    font-style: normal;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* === PROOF CONTAINER === */
+  .proof-section {
+    max-width: 1400px;
+    margin: 0 auto 3rem;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  }
+
+  .proof-header {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    padding: 1rem 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .proof-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .proof-header .dot.red { background: #f38ba8; }
+  .proof-header .dot.yellow { background: #f9e2af; }
+  .proof-header .dot.green { background: #a6e3a1; }
+  .proof-header .file-name { margin-left: 0.5rem; opacity: 0.7; }
+  .proof-header .status {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: #a6e3a1;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .proof-header .status::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: #a6e3a1;
+    border-radius: 50%;
+  }
+
+  .proof-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 400px;
+  }
+
+  /* === TACTIC PANE === */
+  .tactic-pane {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.85;
+    padding: 0;
+    overflow-x: auto;
+    border-right: 1px solid #313244;
+  }
+
+  .tactic-line {
+    display: flex;
+    padding: 0 1rem 0 0;
+    min-height: 1.85em;
+  }
+  .tactic-line:hover { background: var(--line-active); }
+  .tactic-line.active { background: var(--line-active); }
+
+  .line-gutter {
+    width: 3.5rem;
+    text-align: right;
+    padding-right: 1rem;
+    color: var(--gutter);
+    user-select: none;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    line-height: 1.85;
+    padding-top: 0.04em;
+  }
+
+  .line-content { flex: 1; white-space: pre; }
+
+  .kw { color: var(--keyword); font-weight: 500; }
+  .tn { color: var(--tactic-name); }
+  .cm { color: var(--tactic-comment); font-style: italic; }
+  .st { color: var(--tactic-string); }
+  .nm { color: var(--tactic-number); }
+  .ty { color: var(--tactic-type); }
+  .op { color: #89dceb; }
+  .fn { color: #f5c2e7; }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--cursor-color);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* === PAPER PANE === */
+  .paper-pane {
+    background: var(--paper-bg);
+    padding: 2.5rem 2.5rem 2rem;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .theorem-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--paper-text);
+  }
+  .theorem-title .label {
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+  }
+
+  .theorem-statement {
+    font-style: italic;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--hypothesis-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--accent);
+    font-size: 1.05rem;
+  }
+
+  .proof-label {
+    font-variant: small-caps;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--paper-text);
+  }
+
+  .proof-text {
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Contradiction block */
+  .contradiction-block {
+    border-left: 3px solid var(--contradiction);
+    background: var(--contradiction-bg);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .contradiction-block .assumption {
+    font-weight: 500;
+    color: var(--contradiction);
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+  }
+  .contradiction-block .derivation {
+    margin-left: 0.5rem;
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+  }
+  .contradiction-marker {
+    font-weight: 600;
+    color: var(--contradiction);
+    font-size: 1.1rem;
+  }
+
+  /* Case block */
+  .cases-container {
+    margin: 1rem 0;
+  }
+  .case-block {
+    border-left: 3px solid var(--case-border);
+    background: var(--case-bg);
+    padding: 0.85rem 1.25rem;
+    margin: 0.5rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .case-label {
+    font-weight: 600;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    color: var(--case-border);
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+  }
+  .case-content {
+    font-size: 1.05rem;
+  }
+
+  /* QED */
+  .qed {
+    text-align: right;
+    color: var(--qed-color);
+    font-size: 1.3rem;
+    margin-top: 0.5rem;
+    padding-right: 0.25rem;
+  }
+
+  /* Hypothesis shelf */
+  .hyp-shelf {
+    background: var(--hypothesis-bg);
+    border-radius: 4px;
+    padding: 0.6rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 0.92rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+  .hyp-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+  .hyp-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .hyp-colon { color: #999; }
+  .hyp-type { font-style: italic; }
+
+  /* Current goal */
+  .goal-display {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 5px;
+    padding: 0.65rem 1rem;
+    margin: 0.75rem 0;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+  .goal-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+  }
+
+  /* Step markers */
+  .step-marker {
+    display: inline-block;
+    width: 1.4rem;
+    height: 1.4rem;
+    line-height: 1.4rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+  }
+
+  /* === SECTION SEPARATOR === */
+  .section-sep {
+    max-width: 1400px;
+    margin: 3rem auto;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: #aaa;
+    letter-spacing: 0.1em;
+  }
+  .section-sep::before,
+  .section-sep::after {
+    content: '';
+    display: inline-block;
+    width: 4rem;
+    height: 1px;
+    background: #ccc;
+    vertical-align: middle;
+    margin: 0 1rem;
+  }
+
+  /* === DESIGN NOTES === */
+  .design-notes {
+    max-width: 1400px;
+    margin: 3rem auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #666;
+    padding: 1.5rem 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  }
+  .design-notes h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
+  .design-notes p { margin-bottom: 0.75rem; }
+  .note-highlight {
+    background: var(--accent-light);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+  }
+
+  /* Tab switcher mock */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    background: #181825;
+    padding: 0.4rem 0.5rem 0;
+    border-bottom: 1px solid #313244;
+  }
+  .tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    padding: 0.4rem 1rem;
+    color: #6c7086;
+    border-radius: 6px 6px 0 0;
+    cursor: default;
+  }
+  .tab.active {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <em>Math Buddy</em> — UX Exploration Mockup
+</div>
+
+<!-- ============================================ -->
+<!-- PROOF 1: Irrationality of √2               -->
+<!-- ============================================ -->
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span>
+    <span class="dot yellow"></span>
+    <span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status">Proof complete — no errors</span>
+  </div>
+  <div class="proof-body">
+
+    <!-- TACTIC PANE -->
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="cm">-- Assume for contradiction</span></span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="tn">by_contra</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">5</span>
+        <span class="line-content">  <span class="cm">-- h : ¬Irrational (√2)</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">6</span>
+        <span class="line-content">  <span class="cm">-- So √2 = a/b for some a b : ℤ</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">7</span>
+        <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">8</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">9</span>
+        <span class="line-content">  <span class="cm">-- Assume gcd(a,b) = 1</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">10</span>
+        <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">11</span>
+        <span class="line-content">  <span class="cm">-- From √2 = a/b, derive a² = 2b²</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">12</span>
+        <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">13</span>
+        <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">14</span>
+        <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">15</span>
+        <span class="line-content">  <span class="cm">-- Therefore 2 ∣ a²  ⟹  2 ∣ a</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">16</span>
+        <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">17</span>
+        <span class="line-content">    <span class="tn">exact</span> <span class="fn">Int.Prime.dvd_of_dvd_sq</span> ⟨hsq ▸ dvd_mul_right _ _⟩</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">18</span>
+        <span class="line-content">  <span class="cm">-- Write a = 2k, derive 2 ∣ b</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">19</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨k, hk⟩ := ha</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">20</span>
+        <span class="line-content">  <span class="tn">have</span> hb2 : <span class="nm">2</span> ∣ b := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">21</span>
+        <span class="line-content">    <span class="tn">rw</span> [hk] <span class="kw">at</span> hsq; <span class="tn">ring_nf</span> <span class="kw">at</span> hsq</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">22</span>
+        <span class="line-content">    <span class="tn">omega</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">23</span>
+        <span class="line-content">  <span class="cm">-- Contradicts gcd(a,b) = 1</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">24</span>
+        <span class="line-content">  <span class="tn">exact</span> <span class="fn">absurd</span> hcop (<span class="fn">not_coprime_of_dvd</span> ha hb2)</span>
+      </div>
+    </div>
+
+    <!-- PAPER PANE -->
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational; that is, there exist no integers \(a, b\) with \(b \neq 0\) such that \(\sqrt{2} = a/b\).
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="contradiction-block">
+        <div class="assumption">
+          Suppose for contradiction that \(\sqrt{2}\) is rational.
+        </div>
+
+        <div class="derivation">
+          Then we may write \(\sqrt{2} = a/b\) where \(a, b \in \mathbb{Z}\), \(\,b \neq 0\), and \(\gcd(a, b) = 1\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">1</span>
+          Squaring both sides, \(a^2 = 2b^2\). Since \(2 \mid a^2\) and \(2\) is prime, we have \(2 \mid a\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">2</span>
+          Write \(a = 2k\). Substituting, \(4k^2 = 2b^2\), so \(b^2 = 2k^2\). By the same argument, \(2 \mid b\).
+        </div>
+
+        <div class="derivation" style="margin-top: 0.75rem;">
+          But then \(2 \mid \gcd(a, b)\), contradicting \(\gcd(a, b) = 1\). <span class="contradiction-marker">↯</span>
+        </div>
+      </div>
+
+      <div class="qed">∎</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-sep">PROOF 2</div>
+
+<!-- ============================================ -->
+<!-- PROOF 2: Infinitude of Primes               -->
+<!-- ============================================ -->
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span>
+    <span class="dot yellow"></span>
+    <span class="dot green"></span>
+    <span class="file-name">InfinitudeOfPrimes.lean</span>
+    <span class="status">Proof complete — no errors</span>
+  </div>
+  <div class="proof-body">
+
+    <!-- TACTIC PANE -->
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">infinite_primes</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    ∀ n : <span class="ty">ℕ</span>, ∃ p, p ≥ n ∧ <span class="ty">Nat.Prime</span> p := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="tn">intro</span> n</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="cm">-- Consider N = n! + 1</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">5</span>
+        <span class="line-content">  <span class="tn">let</span> N := <span class="fn">Nat.factorial</span> n + <span class="nm">1</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">6</span>
+        <span class="line-content">  <span class="cm">-- N ≥ 2, so it has a prime factor</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">7</span>
+        <span class="line-content">  <span class="tn">have</span> hN : N ≥ <span class="nm">2</span> := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">8</span>
+        <span class="line-content">    <span class="tn">omega</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">9</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨p, hp, hdvd⟩ := <span class="fn">Nat.exists_prime_and_dvd</span> hN</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">10</span>
+        <span class="line-content">  <span class="tn">use</span> p</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">11</span>
+        <span class="line-content">  <span class="tn">constructor</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">12</span>
+        <span class="line-content">  <span class="cm">-- Case 1: Show p ≥ n</span></span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">13</span>
+        <span class="line-content">  <span class="kw">case</span> left =></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">14</span>
+        <span class="line-content">    <span class="tn">by_contra</span> hlt</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">15</span>
+        <span class="line-content">    <span class="tn">push_neg</span> <span class="kw">at</span> hlt</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">16</span>
+        <span class="line-content">    <span class="cm">-- p < n  ⟹  p ∣ n!</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">17</span>
+        <span class="line-content">    <span class="tn">have</span> : p ∣ <span class="fn">Nat.factorial</span> n :=</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">18</span>
+        <span class="line-content">      <span class="fn">Nat.dvd_factorial</span>.mpr ⟨hp.pos, le_of_lt hlt⟩</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">19</span>
+        <span class="line-content">    <span class="cm">-- p ∣ n! and p ∣ n!+1  ⟹  p ∣ 1</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">20</span>
+        <span class="line-content">    <span class="tn">have</span> : p ∣ <span class="nm">1</span> := <span class="kw">by</span> <span class="tn">omega</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">21</span>
+        <span class="line-content">    <span class="cm">-- But p is prime, so p ≥ 2, contradiction</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">22</span>
+        <span class="line-content">    <span class="tn">exact</span> <span class="fn">absurd</span> this hp.one_lt.not_le (dvd_one_le p)</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">23</span>
+        <span class="line-content">  <span class="cm">-- Case 2: p is prime</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">24</span>
+        <span class="line-content">  <span class="kw">case</span> right =></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">25</span>
+        <span class="line-content">    <span class="tn">exact</span> hp</span>
+      </div>
+    </div>
+
+    <!-- PAPER PANE -->
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Infinitude of Primes
+      </div>
+      <div class="theorem-statement">
+        For every natural number \(n\), there exists a prime \(p \geq n\).
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <p class="proof-text">
+        Let \(n \in \mathbb{N}\) be given. Set \(N = n! + 1\). Since \(N \geq 2\), there exists a prime \(p\) dividing \(N\).
+      </p>
+
+      <p class="proof-text">We claim \(p \geq n\). We verify the two required conditions:</p>
+
+      <div class="cases-container">
+        <div class="case-block">
+          <div class="case-label">Case 1 — \(p \geq n\)</div>
+          <div class="case-content">
+            <div class="contradiction-block" style="border-left-color: var(--case-border); background: #faf6f0; margin: 0.5rem 0;">
+              <div class="assumption" style="color: var(--case-border);">
+                Suppose for contradiction that \(p < n\).
+              </div>
+              <div class="derivation">
+                Then \(p \leq n\), so \(p \mid n!\) (since \(n!\) contains all factors up to \(n\)). But \(p \mid N = n! + 1\), so \(p \mid (N - n!) = 1\). This is impossible since \(p \geq 2\). <span class="contradiction-marker">↯</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="case-block">
+          <div class="case-label">Case 2 — \(p\) is prime</div>
+          <div class="case-content">
+            This holds by construction: \(p\) was chosen as a prime factor of \(N\). ✓
+          </div>
+        </div>
+      </div>
+
+      <p class="proof-text">
+        Therefore \(p\) is a prime with \(p \geq n\), as required.
+      </p>
+      <div class="qed">∎</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- DESIGN NOTES                                -->
+<!-- ============================================ -->
+<div class="design-notes">
+  <h3>Design Notes — Things to Discuss</h3>
+
+  <p>
+    <strong>Contradiction blocks</strong> use a red left-border and tinted background.
+    The <span class="contradiction-marker">↯</span> marker (U+21AF, downwards zigzag arrow)
+    signals contradiction without words. Is this the right glyph, or do we prefer
+    something more traditional like ⊥ or ※ ?
+  </p>
+
+  <p>
+    <strong>Case blocks</strong> use a warm brown left-border to distinguish them from
+    contradictions. Nesting a contradiction inside a case (as in Proof 2, Case 1)
+    works visually but might get crowded with deeper nesting. How deep do we expect
+    real proofs to go?
+  </p>
+
+  <p>
+    <strong>The tactic ↔ paper correspondence</strong> is shown by cursor position:
+    line 4 is highlighted in Proof 1 (the <span class="note-highlight">by_contra</span>),
+    and line 13 is highlighted in Proof 2 (the <span class="note-highlight">case left</span>).
+    The paper pane should highlight the corresponding rendered block. This mockup
+    doesn't animate that, but the real UI would.
+  </p>
+
+  <p>
+    <strong>Step markers</strong> (①②) appear in Proof 1 to mark logical steps within
+    the contradiction. Are these helpful, or do they add clutter? They don't correspond
+    to individual tactics — they're editorial groupings.
+  </p>
+
+  <p>
+    <strong>The hypothesis shelf</strong> (not shown in these proofs) would display
+    current hypotheses as a compact bar: <span class="note-highlight">h : ¬Irrational √2</span>
+    <span class="note-highlight">a b : ℤ</span> etc. Shown inline below the current
+    proof step, or pinned at the top of the paper pane?
+  </p>
+
+  <p>
+    <strong>Missing from this mockup:</strong> the chat pane (AI tutor), the symbol
+    input dropdown, the goal display during mid-proof editing, and the library explorer.
+    Those are separate mockups.
+  </p>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "\\(", right: "\\)", display: false},
+        {left: "\\[", right: "\\]", display: true}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>

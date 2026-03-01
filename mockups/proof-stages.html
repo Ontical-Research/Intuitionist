@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intuitionist — In-Progress Proof States</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --paper-bg: #fefcf8;
+    --paper-text: #2c2416;
+    --tactic-bg: #1e1e2e;
+    --tactic-text: #cdd6f4;
+    --chat-bg: #f5f3ee;
+    --accent: #7c5cbf;
+    --accent-light: #ede8f5;
+    --contradiction: #c44;
+    --contradiction-bg: #fdf0f0;
+    --case-border: #8b7355;
+    --case-bg: #faf7f2;
+    --hypothesis-bg: #f0ede6;
+    --qed-color: #555;
+    --keyword: #cba6f7;
+    --tactic-name: #89b4fa;
+    --tactic-comment: #6c7086;
+    --tactic-string: #a6e3a1;
+    --tactic-number: #fab387;
+    --tactic-type: #f9e2af;
+    --cursor-color: #f5e0dc;
+    --gutter: #313244;
+    --line-active: rgba(255,255,255,0.04);
+    --error-color: #e64553;
+    --error-bg: #2e1a1e;
+    --goal-border: #7c5cbf;
+    --open-block-border: #bbb;
+    --open-block-bg: #fafafa;
+    --ghost-text: #c0b8a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e4dc;
+    color: var(--paper-text);
+    font-family: 'Crimson Pro', 'Georgia', serif;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .page-title {
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+  .page-title em { font-style: normal; color: var(--accent); font-weight: 500; }
+  .page-subtitle {
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 2.5rem;
+  }
+
+  /* === STAGE LABEL === */
+  .stage-label {
+    max-width: 1400px;
+    margin: 2.5rem auto 0.75rem;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .stage-number {
+    width: 2rem; height: 2rem;
+    line-height: 2rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .stage-info { flex: 1; }
+  .stage-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--paper-text);
+  }
+  .stage-desc {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 0.1rem;
+  }
+
+  /* === PROOF CONTAINER === */
+  .proof-section {
+    max-width: 1400px;
+    margin: 0 auto 1rem;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  }
+
+  .proof-header {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    padding: 0.7rem 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .proof-header .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .proof-header .dot.red { background: #f38ba8; }
+  .proof-header .dot.yellow { background: #f9e2af; }
+  .proof-header .dot.green { background: #a6e3a1; }
+  .proof-header .file-name { margin-left: 0.5rem; opacity: 0.7; font-size: 0.72rem; }
+  .proof-header .status {
+    margin-left: auto;
+    font-size: 0.68rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .proof-header .status::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .status-ok { color: #a6e3a1; }
+  .status-ok::before { background: #a6e3a1 !important; }
+  .status-working { color: #f9e2af; }
+  .status-working::before { background: #f9e2af !important; }
+  .status-error { color: #f38ba8; }
+  .status-error::before { background: #f38ba8 !important; }
+
+  .proof-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 220px;
+  }
+
+  /* === TACTIC PANE === */
+  .tactic-pane {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.85;
+    padding: 0;
+    overflow-x: auto;
+    border-right: 1px solid #313244;
+  }
+
+  .tactic-line {
+    display: flex;
+    padding: 0 1rem 0 0;
+    min-height: 1.85em;
+  }
+  .tactic-line:hover { background: var(--line-active); }
+  .tactic-line.active { background: var(--line-active); }
+  .tactic-line.error-line { background: var(--error-bg); }
+
+  .line-gutter {
+    width: 3rem;
+    text-align: right;
+    padding-right: 0.75rem;
+    color: var(--gutter);
+    user-select: none;
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    line-height: 1.85;
+  }
+  .line-content { flex: 1; white-space: pre; }
+
+  .kw { color: var(--keyword); font-weight: 500; }
+  .tn { color: var(--tactic-name); }
+  .cm { color: var(--tactic-comment); font-style: italic; }
+  .nm { color: var(--tactic-number); }
+  .ty { color: var(--tactic-type); }
+  .fn { color: #f5c2e7; }
+  .err { color: var(--error-color); text-decoration: wavy underline var(--error-color); }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--cursor-color);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Error diagnostic */
+  .error-diagnostic {
+    margin: 0.25rem 0 0.25rem 3rem;
+    padding: 0.35rem 0.75rem;
+    background: var(--error-bg);
+    border-left: 2px solid var(--error-color);
+    color: var(--error-color);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* === PAPER PANE === */
+  .paper-pane {
+    background: var(--paper-bg);
+    padding: 2rem 2.25rem 1.75rem;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .theorem-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+  .theorem-title .label {
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+  }
+
+  .theorem-statement {
+    font-style: italic;
+    margin-bottom: 1.25rem;
+    padding: 0.65rem 1rem;
+    background: var(--hypothesis-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--accent);
+    font-size: 1rem;
+  }
+
+  .proof-label {
+    font-variant: small-caps;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .proof-text {
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  /* Hypothesis shelf — FIXED POSITION */
+  .hyp-shelf {
+    background: var(--hypothesis-bg);
+    border-radius: 4px;
+    padding: 0.5rem 0.85rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    border: 1px solid #e5e0d5;
+  }
+  .hyp-shelf-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #999;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+  }
+  .hyp-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.2rem;
+  }
+  .hyp-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+  }
+  .hyp-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .hyp-colon { color: #999; font-size: 0.85rem; }
+  .hyp-new {
+    background: var(--accent-light);
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+  }
+  .hyp-dimmed { opacity: 0.5; }
+
+  /* Goal display */
+  .goal-display {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 5px;
+    padding: 0.6rem 1rem;
+    margin: 0.85rem 0;
+  }
+  .goal-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.15rem;
+    font-weight: 600;
+  }
+  .goal-content {
+    font-size: 1.05rem;
+    text-align: center;
+    padding: 0.2rem 0;
+  }
+
+  /* Open / incomplete block */
+  .open-block {
+    border-left: 3px dashed var(--open-block-border);
+    background: var(--open-block-bg);
+    padding: 0.85rem 1.15rem;
+    margin: 0.75rem 0;
+    border-radius: 0 4px 4px 0;
+    min-height: 3rem;
+  }
+  .open-block.contradiction {
+    border-left-color: var(--contradiction);
+    border-left-style: dashed;
+    background: #fef8f8;
+  }
+
+  /* Completed contradiction block */
+  .contradiction-block {
+    border-left: 3px solid var(--contradiction);
+    background: #fdf0f0;
+    padding: 0.85rem 1.15rem;
+    margin: 0.75rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .assumption {
+    font-weight: 500;
+    color: var(--contradiction);
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+  }
+  .derivation {
+    margin-left: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .ghost-text {
+    color: var(--ghost-text);
+    font-style: italic;
+    font-size: 0.92rem;
+  }
+
+  /* Inline error in paper pane */
+  .paper-error {
+    background: #fdf0f0;
+    border: 1.5px solid var(--error-color);
+    border-radius: 5px;
+    padding: 0.5rem 0.85rem;
+    margin: 0.75rem 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--error-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .paper-error-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+  .paper-error-text { line-height: 1.5; }
+  .paper-error-hint {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Step markers */
+  .step-marker {
+    display: inline-block;
+    width: 1.3rem; height: 1.3rem;
+    line-height: 1.3rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+  }
+
+  .qed {
+    text-align: right;
+    color: var(--qed-color);
+    font-size: 1.3rem;
+    margin-top: 0.3rem;
+  }
+
+  /* === SEPARATOR === */
+  .section-sep {
+    max-width: 1400px;
+    margin: 1rem auto;
+  }
+
+  /* === DESIGN ANNOTATIONS === */
+  .annotation {
+    max-width: 1400px;
+    margin: 0.5rem auto 2rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: #888;
+    padding: 0.75rem 1.25rem;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  }
+  .annotation strong { color: #666; }
+</style>
+</head>
+<body>
+
+<div class="page-title"><em>Intuitionist</em> — Proof States</div>
+<div class="page-subtitle">Irrationality of √2 at four stages of completion</div>
+
+<!-- ============================================ -->
+<!-- STAGE 1: BLANK CANVAS                       -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">1</div>
+  <div class="stage-info">
+    <div class="stage-title">Blank Canvas</div>
+    <div class="stage-desc">Theorem stated, <code>by</code> entered. Cursor waiting for first tactic.</div>
+  </div>
+</div>
+
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status status-working">1 goal</span>
+  </div>
+  <div class="proof-body">
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="cursor"></span></span>
+      </div>
+    </div>
+
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational.
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="goal-display">
+        <div class="goal-label">Goal</div>
+        <div class="goal-content">\(\text{Irrational}(\sqrt{2})\)</div>
+      </div>
+
+      <div class="ghost-text">Begin your proof…</div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Design note:</strong> The paper pane shows the theorem, then immediately the current goal in a prominent box. The ghost text invites input. No hypothesis shelf yet — there are no hypotheses. The goal box is the student's north star: this is what you need to prove.
+</div>
+
+
+<!-- ============================================ -->
+<!-- STAGE 2: CONTRADICTION OPENED               -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">2</div>
+  <div class="stage-info">
+    <div class="stage-title">Contradiction Opened</div>
+    <div class="stage-desc">Student enters <code>by_contra h</code>. A contradiction block appears. The goal flips.</div>
+  </div>
+</div>
+
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status status-working">1 goal</span>
+  </div>
+  <div class="proof-body">
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="tn">by_contra</span> h</span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="cursor"></span></span>
+      </div>
+    </div>
+
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational.
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="open-block contradiction">
+        <div class="assumption">
+          Suppose for contradiction that \(\sqrt{2}\) is not irrational.
+        </div>
+
+        <div class="hyp-shelf">
+          <div class="hyp-shelf-label">Hypotheses</div>
+          <div class="hyp-list">
+            <div class="hyp-item hyp-new">
+              <span class="hyp-name">h</span>
+              <span class="hyp-colon">:</span>
+              <span class="hyp-type">\(\neg\,\text{Irrational}(\sqrt{2})\)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="goal-display">
+          <div class="goal-label">Goal</div>
+          <div class="goal-content">\(\bot\)</div>
+        </div>
+
+        <div class="ghost-text">Derive a contradiction…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Design note:</strong> The moment <code>by_contra h</code> is entered, the paper pane responds: a dashed red contradiction block opens, the assumption is stated in prose, the new hypothesis <code>h</code> appears highlighted in the shelf, and the goal flips to \(\bot\). The block is dashed to signal it's incomplete. The student can see the logical structure they've committed to.
+</div>
+
+
+<!-- ============================================ -->
+<!-- STAGE 3: MID-DERIVATION                     -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">3</div>
+  <div class="stage-info">
+    <div class="stage-title">Mid-Derivation</div>
+    <div class="stage-desc">Student has unpacked the rational representation and derived \(a^2 = 2b^2\). Working on showing \(2 \mid a\).</div>
+  </div>
+</div>
+
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status status-working">1 goal</span>
+  </div>
+  <div class="proof-body">
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="tn">by_contra</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">5</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">6</span>
+        <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">7</span>
+        <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">8</span>
+        <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">9</span>
+        <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">10</span>
+        <span class="line-content">  <span class="cm">-- Now show 2 ∣ a</span></span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">11</span>
+        <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span><span class="cursor"></span></span>
+      </div>
+    </div>
+
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational.
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="open-block contradiction">
+        <div class="assumption">
+          Suppose for contradiction that \(\sqrt{2}\) is rational.
+        </div>
+
+        <div class="derivation">
+          Then \(\sqrt{2} = a/b\) for some \(a, b \in \mathbb{Z}\) with \(b \neq 0\) and \(\gcd(a,b) = 1\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">1</span>
+          Squaring, \(a^2 = 2b^2\).
+        </div>
+
+        <div class="hyp-shelf">
+          <div class="hyp-shelf-label">Hypotheses</div>
+          <div class="hyp-list">
+            <div class="hyp-item"><span class="hyp-name">a b</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(\mathbb{Z}\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hb</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(b \neq 0\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hcop</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(\gcd(a,b) = 1\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hsq</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(a^2 = 2b^2\)</span></div>
+          </div>
+        </div>
+
+        <div class="goal-display">
+          <div class="goal-label">Current sub-goal</div>
+          <div class="goal-content">\(2 \mid a\)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Design note:</strong> The hypothesis shelf has grown — four items, all displayed compactly. The derivation steps have been rendered as prose from the tactics above. The goal display now shows the <em>sub-goal</em> (proving \(2 \mid a\)), not the top-level \(\bot\). The contradiction block remains dashed — still open. Notice: the rendered prose is an editorial interpretation of the tactics, not a 1:1 transliteration. The AST needs to support this mapping.
+</div>
+
+
+<!-- ============================================ -->
+<!-- STAGE 4: ERROR STATE                        -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">4</div>
+  <div class="stage-info">
+    <div class="stage-title">Error State</div>
+    <div class="stage-desc">Student tries the wrong tactic. Lean rejects it. Both panes show the problem.</div>
+  </div>
+</div>
+
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status status-error">Type mismatch</span>
+  </div>
+  <div class="proof-body">
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="tn">by_contra</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">5</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">6</span>
+        <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">7</span>
+        <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">8</span>
+        <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">9</span>
+        <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+      </div>
+      <div class="tactic-line error-line">
+        <span class="line-gutter">10</span>
+        <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span> <span class="err">omega</span><span class="cursor"></span></span>
+      </div>
+      <div class="error-diagnostic">
+        omega could not prove this goal — it involves divisibility, not linear arithmetic
+      </div>
+    </div>
+
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational.
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="open-block contradiction">
+        <div class="assumption">
+          Suppose for contradiction that \(\sqrt{2}\) is rational.
+        </div>
+
+        <div class="derivation">
+          Then \(\sqrt{2} = a/b\) for some \(a, b \in \mathbb{Z}\) with \(b \neq 0\) and \(\gcd(a,b) = 1\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">1</span>
+          Squaring, \(a^2 = 2b^2\).
+        </div>
+
+        <div class="paper-error">
+          <div class="paper-error-icon">⚠</div>
+          <div>
+            <div class="paper-error-text">
+              Cannot show \(2 \mid a\) with the current approach.
+            </div>
+            <div class="paper-error-hint">
+              <code>omega</code> handles linear arithmetic over integers, but divisibility requires a different strategy. Since \(2\) is prime and \(2 \mid a^2\), consider using a lemma about primes dividing squares.
+            </div>
+          </div>
+        </div>
+
+        <div class="hyp-shelf">
+          <div class="hyp-shelf-label">Hypotheses</div>
+          <div class="hyp-list">
+            <div class="hyp-item"><span class="hyp-name">a b</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(\mathbb{Z}\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hb</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(b \neq 0\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hcop</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(\gcd(a,b) = 1\)</span></div>
+            <div class="hyp-item"><span class="hyp-name">hsq</span> <span class="hyp-colon">:</span> <span class="hyp-type">\(a^2 = 2b^2\)</span></div>
+          </div>
+        </div>
+
+        <div class="goal-display">
+          <div class="goal-label">Goal (unresolved)</div>
+          <div class="goal-content">\(2 \mid a\)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Design note:</strong> The error shows on both sides. The tactic pane has a wavy underline and inline diagnostic (standard IDE behavior). The paper pane shows the error <em>in context</em> — within the contradiction block, at the logical point where the reasoning broke down. The hint in the paper pane is richer than the raw Lean diagnostic; this is where the AI tutor layer adds value, translating "tactic failed" into mathematical guidance. <strong>Open question:</strong> should this hint come from the AI agent in the chat pane instead of being inlined? Or both?
+</div>
+
+
+<!-- ============================================ -->
+<!-- STAGE 5: COMPLETION MOMENT                  -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">5</div>
+  <div class="stage-info">
+    <div class="stage-title">Proof Complete</div>
+    <div class="stage-desc">The last tactic closes the final goal. The dashed border becomes solid. ∎ appears.</div>
+  </div>
+</div>
+
+<div class="proof-section">
+  <div class="proof-header">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="file-name">Irrationality.lean</span>
+    <span class="status status-ok">Proof complete — no errors</span>
+  </div>
+  <div class="proof-body">
+    <div class="tactic-pane">
+      <div class="tactic-line">
+        <span class="line-gutter">1</span>
+        <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">2</span>
+        <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">3</span>
+        <span class="line-content">  <span class="tn">by_contra</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">4</span>
+        <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">5</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">6</span>
+        <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">7</span>
+        <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">8</span>
+        <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">9</span>
+        <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">10</span>
+        <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">11</span>
+        <span class="line-content">    <span class="tn">exact</span> <span class="fn">Int.Prime.dvd_of_dvd_sq</span> ⟨hsq ▸ dvd_mul_right _ _⟩</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">12</span>
+        <span class="line-content">  <span class="tn">obtain</span> ⟨k, hk⟩ := ha</span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">13</span>
+        <span class="line-content">  <span class="tn">have</span> hb2 : <span class="nm">2</span> ∣ b := <span class="kw">by</span></span>
+      </div>
+      <div class="tactic-line">
+        <span class="line-gutter">14</span>
+        <span class="line-content">    <span class="tn">rw</span> [hk] <span class="kw">at</span> hsq; <span class="tn">ring_nf</span> <span class="kw">at</span> hsq; <span class="tn">omega</span></span>
+      </div>
+      <div class="tactic-line active">
+        <span class="line-gutter">15</span>
+        <span class="line-content">  <span class="tn">exact</span> <span class="fn">absurd</span> hcop (<span class="fn">not_coprime_of_dvd</span> ha hb2)</span>
+      </div>
+    </div>
+
+    <div class="paper-pane">
+      <div class="theorem-title">
+        <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+      </div>
+      <div class="theorem-statement">
+        \(\sqrt{2}\) is irrational.
+      </div>
+
+      <div class="proof-label">Proof.</div>
+
+      <div class="contradiction-block">
+        <div class="assumption">
+          Suppose for contradiction that \(\sqrt{2}\) is rational.
+        </div>
+
+        <div class="derivation">
+          Then \(\sqrt{2} = a/b\) for some \(a, b \in \mathbb{Z}\) with \(b \neq 0\) and \(\gcd(a,b) = 1\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">1</span>
+          Squaring both sides, \(a^2 = 2b^2\). Since \(2 \mid a^2\) and \(2\) is prime, we have \(2 \mid a\).
+        </div>
+
+        <div class="derivation">
+          <span class="step-marker">2</span>
+          Write \(a = 2k\). Substituting, \(4k^2 = 2b^2\), hence \(2 \mid b\).
+        </div>
+
+        <div class="derivation" style="margin-top: 0.5rem;">
+          But then \(2 \mid \gcd(a, b)\), contradicting \(\gcd(a, b) = 1\). \(\bot\)
+        </div>
+      </div>
+
+      <div class="qed">∎</div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Design note:</strong> Completion is signaled by three things: the status bar turns green, the dashed contradiction border becomes solid, and ∎ appears. The hypothesis shelf vanishes from the paper pane — the proof is done, so there's no "current state" to show. The transition from Stage 3 → Stage 5 should feel like a door closing. <strong>The dashed → solid border transition is the visual grammar for "this block is complete."</strong> This generalizes: case blocks, sub-lemmas, anything with scope.
+</div>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "\\(", right: "\\)", display: false},
+        {left: "\\[", right: "\\]", display: true}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>

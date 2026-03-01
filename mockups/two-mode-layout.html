@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intuitionist — Two-Mode Layout</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --paper-bg: #fefcf8;
+    --paper-text: #2c2416;
+    --tactic-bg: #1e1e2e;
+    --tactic-text: #cdd6f4;
+    --chat-bg: #f7f5f0;
+    --chat-input-bg: #fff;
+    --accent: #7c5cbf;
+    --accent-light: #ede8f5;
+    --contradiction: #c44;
+    --contradiction-bg: #fdf0f0;
+    --hypothesis-bg: #f0ede6;
+    --keyword: #cba6f7;
+    --tactic-name: #89b4fa;
+    --tactic-comment: #6c7086;
+    --tactic-number: #fab387;
+    --tactic-type: #f9e2af;
+    --cursor-color: #f5e0dc;
+    --gutter: #313244;
+    --line-active: rgba(255,255,255,0.04);
+    --error-color: #e64553;
+    --error-bg: #2e1a1e;
+    --agent-color: #7c5cbf;
+    --user-color: #2c2416;
+    --quote-bg: #f0ede6;
+    --quote-border: #d0c8b8;
+    --ghost-text: #c0b8a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e4dc;
+    color: var(--paper-text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    text-align: center;
+    font-weight: 300;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.4rem;
+  }
+  .page-title em { font-style: normal; color: var(--accent); font-weight: 500; }
+  .page-subtitle {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #aaa;
+    margin-bottom: 2rem;
+  }
+
+  /* === STAGE LABEL === */
+  .stage-label {
+    max-width: 1500px;
+    margin: 2rem auto 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .stage-number {
+    width: 1.8rem; height: 1.8rem;
+    line-height: 1.8rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .stage-title { font-size: 0.85rem; font-weight: 600; }
+  .stage-desc { font-size: 0.72rem; color: #888; }
+
+  /* === APP FRAME === */
+  .app-frame {
+    max-width: 1500px;
+    margin: 0 auto 0.5rem;
+    background: #1a1a2e;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.15);
+  }
+
+  .app-titlebar {
+    background: #11111b;
+    padding: 0.55rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .titlebar-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .titlebar-dot.r { background: #f38ba8; }
+  .titlebar-dot.y { background: #f9e2af; }
+  .titlebar-dot.g { background: #a6e3a1; }
+  .titlebar-title {
+    flex: 1;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #6c7086;
+    letter-spacing: 0.05em;
+  }
+
+  .app-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 540px;
+  }
+
+  /* === LEFT: TACTIC PANE (always visible) === */
+  .tactic-pane {
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.85;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tactic-file-tab {
+    background: #181825;
+    padding: 0.35rem 1rem;
+    border-bottom: 1px solid #313244;
+    font-size: 0.68rem;
+    color: #6c7086;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .tactic-file-tab .active-tab {
+    color: var(--tactic-text);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.2rem;
+  }
+
+  .tactic-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .tactic-line {
+    display: flex;
+    padding: 0 0.75rem 0 0;
+    min-height: 1.85em;
+  }
+  .tactic-line:hover { background: var(--line-active); }
+  .tactic-line.active { background: var(--line-active); }
+  .tactic-line.error-line { background: var(--error-bg); }
+
+  .line-gutter {
+    width: 2.8rem;
+    text-align: right;
+    padding-right: 0.7rem;
+    color: var(--gutter);
+    user-select: none;
+    flex-shrink: 0;
+    font-size: 0.68rem;
+  }
+  .line-content { flex: 1; white-space: pre; }
+
+  .kw { color: var(--keyword); font-weight: 500; }
+  .tn { color: var(--tactic-name); }
+  .cm { color: var(--tactic-comment); font-style: italic; }
+  .nm { color: var(--tactic-number); }
+  .ty { color: var(--tactic-type); }
+  .fn { color: #f5c2e7; }
+  .err { text-decoration: wavy underline var(--error-color); }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--cursor-color);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .error-diagnostic {
+    margin: 0.15rem 0 0.15rem 2.8rem;
+    padding: 0.3rem 0.65rem;
+    background: var(--error-bg);
+    border-left: 2px solid var(--error-color);
+    color: var(--error-color);
+    font-size: 0.68rem;
+    line-height: 1.5;
+  }
+
+  /* Goal bar — pinned between panes */
+  .goal-bar {
+    background: #181825;
+    border-top: 1px solid #313244;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.72rem;
+    color: var(--tactic-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .goal-bar-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .goal-bar-content { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+  .hyp-bar {
+    background: #181825;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.68rem;
+    color: #a6adc8;
+    font-family: 'JetBrains Mono', monospace;
+    border-top: 1px solid #252536;
+  }
+  .hyp-bar-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6c7086;
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+  .hyp-inline { margin-right: 1rem; }
+  .hyp-inline .hn { color: var(--accent); }
+
+  /* === RIGHT PANE: MODE SWITCHER === */
+  .right-pane {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #313244;
+  }
+
+  .mode-tabs {
+    background: #f0ede6;
+    display: flex;
+    border-bottom: 1px solid #ddd5c5;
+    flex-shrink: 0;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: #999;
+    cursor: default;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .mode-tab.active {
+    color: var(--paper-text);
+    border-bottom-color: var(--accent);
+    background: white;
+  }
+  .mode-tab .shortcut {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: #bbb;
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.3rem;
+    background: #e8e4dc;
+    border-radius: 3px;
+  }
+  .mode-tab.active .shortcut { background: var(--accent-light); color: var(--accent); }
+
+  .right-content {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* === PAPER MODE === */
+  .paper-mode {
+    background: var(--paper-bg);
+    padding: 1.75rem 2rem 1.5rem;
+    font-family: 'Crimson Pro', 'Georgia', serif;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .theorem-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+  .theorem-title .label { font-variant: small-caps; letter-spacing: 0.04em; }
+
+  .theorem-statement {
+    font-style: italic;
+    margin-bottom: 1.1rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--hypothesis-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--accent);
+    font-size: 0.95rem;
+  }
+
+  .proof-label {
+    font-variant: small-caps;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .proof-text { font-size: 0.95rem; margin-bottom: 0.5rem; }
+
+  .open-block-c {
+    border-left: 3px dashed var(--contradiction);
+    background: #fef8f8;
+    padding: 0.75rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .assumption {
+    font-weight: 500;
+    color: var(--contradiction);
+    margin-bottom: 0.35rem;
+    font-size: 0.95rem;
+  }
+  .derivation {
+    margin-left: 0.4rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+  }
+  .step-marker {
+    display: inline-block;
+    width: 1.2rem; height: 1.2rem;
+    line-height: 1.2rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+  }
+
+  .paper-goal {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 5px;
+    padding: 0.5rem 0.85rem;
+    margin: 0.65rem 0;
+    text-align: center;
+  }
+  .paper-goal-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+  }
+
+  /* === CHAT MODE === */
+  .chat-mode {
+    background: var(--chat-bg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .msg {
+    max-width: 92%;
+    line-height: 1.55;
+  }
+  .msg-agent { align-self: flex-start; }
+  .msg-user { align-self: flex-end; }
+
+  .msg-bubble {
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+  }
+  .msg-agent .msg-bubble {
+    background: white;
+    border: 1px solid #e5e0d5;
+    border-radius: 2px 12px 12px 12px;
+    color: var(--paper-text);
+  }
+  .msg-user .msg-bubble {
+    background: var(--accent);
+    color: white;
+    border-radius: 12px 12px 2px 12px;
+  }
+
+  .msg-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.2rem;
+    padding-left: 0.15rem;
+  }
+  .msg-agent .msg-label { color: var(--accent); }
+  .msg-user .msg-label { color: #888; text-align: right; padding-right: 0.15rem; }
+
+  /* Quoted proof state inside chat */
+  .chat-quote {
+    background: var(--quote-bg);
+    border-left: 3px solid var(--quote-border);
+    border-radius: 0 6px 6px 0;
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0 0.35rem;
+    font-family: 'Crimson Pro', 'Georgia', serif;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #555;
+  }
+  .chat-quote-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #aaa;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .chat-quote .cq-hyp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+  }
+  .chat-quote .cq-goal {
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .chat-quote .cq-step {
+    color: var(--paper-text);
+  }
+
+  /* Code in chat */
+  .chat-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: #e8e4dc;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    color: var(--paper-text);
+  }
+
+  .chat-code-block {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.73rem;
+    background: var(--tactic-bg);
+    color: var(--tactic-text);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    margin: 0.4rem 0;
+    line-height: 1.7;
+  }
+
+  .chat-math {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+  }
+
+  /* Chat input */
+  .chat-input-area {
+    border-top: 1px solid #ddd5c5;
+    padding: 0.65rem 1rem;
+    background: white;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+  .chat-input {
+    flex: 1;
+    border: 1px solid #ddd5c5;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--paper-text);
+    background: var(--chat-input-bg);
+    outline: none;
+    min-height: 2.2rem;
+    line-height: 1.4;
+  }
+  .chat-input-ghost { color: #bbb; }
+  .chat-send {
+    width: 2rem; height: 2rem;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-quote-btn {
+    font-size: 0.62rem;
+    color: var(--accent);
+    background: var(--accent-light);
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: default;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+
+  /* === ANNOTATION === */
+  .annotation {
+    max-width: 1500px;
+    margin: 0.5rem auto 2rem;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    color: #888;
+    padding: 0.65rem 1.1rem;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  }
+  .annotation strong { color: #666; }
+</style>
+</head>
+<body>
+
+<div class="page-title"><em>Intuitionist</em> — Two-Mode Layout</div>
+<div class="page-subtitle">Left pane: always tactic editor. Right pane: toggles between Paper and Chat.</div>
+
+
+<!-- ============================================ -->
+<!-- MODE A: PAPER VIEW (writing flow)           -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">A</div>
+  <div class="stage-info">
+    <div class="stage-title">Paper Mode — Writing Flow</div>
+    <div class="stage-desc">Student is mid-proof. Tactics on the left, rendered proof on the right. Goal bar pinned at bottom of tactic pane.</div>
+  </div>
+</div>
+
+<div class="app-frame">
+  <div class="app-titlebar">
+    <span class="titlebar-dot r"></span>
+    <span class="titlebar-dot y"></span>
+    <span class="titlebar-dot g"></span>
+    <span class="titlebar-title">Intuitionist — Irrationality.lean</span>
+  </div>
+  <div class="app-body">
+
+    <!-- LEFT: TACTIC PANE -->
+    <div class="tactic-pane">
+      <div class="tactic-file-tab">
+        <span class="active-tab">Irrationality.lean</span>
+      </div>
+      <div class="tactic-content">
+        <div class="tactic-line">
+          <span class="line-gutter">1</span>
+          <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">2</span>
+          <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">3</span>
+          <span class="line-content">  <span class="tn">by_contra</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">4</span>
+          <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">5</span>
+          <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">6</span>
+          <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">7</span>
+          <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">8</span>
+          <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">9</span>
+          <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+        </div>
+        <div class="tactic-line active">
+          <span class="line-gutter">10</span>
+          <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span><span class="cursor"></span></span>
+        </div>
+      </div>
+      <div class="hyp-bar">
+        <span class="hyp-bar-label">Hyps</span>
+        <span class="hyp-inline"><span class="hn">a b</span> : ℤ</span>
+        <span class="hyp-inline"><span class="hn">hb</span> : b ≠ 0</span>
+        <span class="hyp-inline"><span class="hn">hcop</span> : gcd a b = 1</span>
+        <span class="hyp-inline"><span class="hn">hsq</span> : a² = 2 * b²</span>
+      </div>
+      <div class="goal-bar">
+        <span class="goal-bar-label">Goal</span>
+        <span class="goal-bar-content">2 ∣ a</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: PAPER MODE -->
+    <div class="right-pane">
+      <div class="mode-tabs">
+        <div class="mode-tab active">
+          Paper <span class="shortcut">⌘1</span>
+        </div>
+        <div class="mode-tab">
+          Chat <span class="shortcut">⌘2</span>
+        </div>
+      </div>
+      <div class="right-content">
+        <div class="paper-mode">
+          <div class="theorem-title">
+            <span class="label">Theorem.</span> Irrationality of \(\sqrt{2}\)
+          </div>
+          <div class="theorem-statement">
+            \(\sqrt{2}\) is irrational.
+          </div>
+          <div class="proof-label">Proof.</div>
+          <div class="open-block-c">
+            <div class="assumption">Suppose for contradiction that \(\sqrt{2}\) is rational.</div>
+            <div class="derivation">
+              Then \(\sqrt{2} = a/b\) for some \(a, b \in \mathbb{Z}\) with \(b \neq 0\) and \(\gcd(a,b) = 1\).
+            </div>
+            <div class="derivation">
+              <span class="step-marker">1</span>
+              Squaring, \(a^2 = 2b^2\).
+            </div>
+            <div class="paper-goal">
+              <div class="paper-goal-label">Current sub-goal</div>
+              <div>\(2 \mid a\)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>Layout:</strong> Tactic editor always on the left with the hypothesis shelf and goal bar pinned at the bottom — they never move. The right pane shows the Paper view. <strong>⌘1 / ⌘2</strong> toggles between Paper and Chat. The student is in the flow of writing tactics and watching the proof take shape.
+</div>
+
+
+<!-- ============================================ -->
+<!-- MODE B: CHAT VIEW (stuck, discussing)       -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">B</div>
+  <div class="stage-info">
+    <div class="stage-title">Chat Mode — Stuck on a Step</div>
+    <div class="stage-desc">Student tried <code>omega</code>, got an error, pressed ⌘2 to discuss. The chat quotes the current proof state.</div>
+  </div>
+</div>
+
+<div class="app-frame">
+  <div class="app-titlebar">
+    <span class="titlebar-dot r"></span>
+    <span class="titlebar-dot y"></span>
+    <span class="titlebar-dot g"></span>
+    <span class="titlebar-title">Intuitionist — Irrationality.lean</span>
+  </div>
+  <div class="app-body">
+
+    <!-- LEFT: TACTIC PANE (same state, with error) -->
+    <div class="tactic-pane">
+      <div class="tactic-file-tab">
+        <span class="active-tab">Irrationality.lean</span>
+      </div>
+      <div class="tactic-content">
+        <div class="tactic-line">
+          <span class="line-gutter">1</span>
+          <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">2</span>
+          <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">3</span>
+          <span class="line-content">  <span class="tn">by_contra</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">4</span>
+          <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">5</span>
+          <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">6</span>
+          <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">7</span>
+          <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">8</span>
+          <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">9</span>
+          <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+        </div>
+        <div class="tactic-line error-line">
+          <span class="line-gutter">10</span>
+          <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span> <span class="err">omega</span><span class="cursor"></span></span>
+        </div>
+        <div class="error-diagnostic">
+          omega could not prove the goal
+        </div>
+      </div>
+      <div class="hyp-bar">
+        <span class="hyp-bar-label">Hyps</span>
+        <span class="hyp-inline"><span class="hn">a b</span> : ℤ</span>
+        <span class="hyp-inline"><span class="hn">hb</span> : b ≠ 0</span>
+        <span class="hyp-inline"><span class="hn">hcop</span> : gcd a b = 1</span>
+        <span class="hyp-inline"><span class="hn">hsq</span> : a² = 2 * b²</span>
+      </div>
+      <div class="goal-bar">
+        <span class="goal-bar-label">Goal</span>
+        <span class="goal-bar-content">2 ∣ a</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: CHAT MODE -->
+    <div class="right-pane">
+      <div class="mode-tabs">
+        <div class="mode-tab">
+          Paper <span class="shortcut">⌘1</span>
+        </div>
+        <div class="mode-tab active">
+          Chat <span class="shortcut">⌘2</span>
+        </div>
+      </div>
+      <div class="right-content" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="chat-mode">
+          <div class="chat-messages">
+
+            <!-- System context -->
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                I can see you're trying to show <span class="chat-code">2 ∣ a</span> and <span class="chat-code">omega</span> didn't work. That makes sense — <span class="chat-code">omega</span> handles linear arithmetic, but divisibility is a different kind of claim.
+
+                <div class="chat-quote">
+                  <div class="chat-quote-label">Current proof state</div>
+                  <div class="cq-step">Within contradiction: \(\sqrt{2}\) is rational, so \(\sqrt{2} = a/b\) with \(\gcd(a,b) = 1\).</div>
+                  <div class="cq-step" style="margin-top: 0.3rem;">Established: \(a^2 = 2b^2\)</div>
+                  <div class="cq-goal" style="margin-top: 0.3rem;">Need to show: \(2 \mid a\)</div>
+                </div>
+
+                What do you know about how primes interact with products and squares?
+              </div>
+            </div>
+
+            <div class="msg msg-user">
+              <div class="msg-label">You</div>
+              <div class="msg-bubble">
+                If a prime divides a product then it divides one of the factors? Is that what I need here?
+              </div>
+            </div>
+
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                Exactly — that's Euclid's lemma. And \(a^2 = a \cdot a\) is a product. So if \(2 \mid a^2\), then \(2 \mid a\).
+
+                In Lean, this is in Mathlib as <span class="chat-code">Int.Prime.dvd_of_dvd_sq</span>. You'll need to tell Lean that 2 is prime (which it can figure out) and that \(2 \mid a^2\) (which follows from <span class="chat-code">hsq</span>).
+
+                Try something like:
+
+                <div class="chat-code-block"><span style="color:#89b4fa">exact</span> <span style="color:#f5c2e7">Int.Prime.dvd_of_dvd_sq</span> ⟨hsq ▸ dvd_mul_right _ _⟩</div>
+              </div>
+            </div>
+
+            <div class="msg msg-user">
+              <div class="msg-label">You</div>
+              <div class="msg-bubble">
+                Wait, I want to make sure I understand. Why does 2 | a² follow from hsq? Can you walk me through that?
+              </div>
+            </div>
+
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                Good question. Look at what <span class="chat-code">hsq</span> says:
+
+                <div class="chat-quote">
+                  <div class="chat-quote-label">Hypothesis hsq</div>
+                  <div>\(a^2 = 2 \cdot b^2\)</div>
+                </div>
+
+                The right-hand side is \(2 \cdot (\text{something})\). By definition, that means \(2\) divides the left-hand side. So \(2 \mid a^2\) is literally just "the RHS of <span class="chat-code">hsq</span> has 2 as a factor."
+
+                In Lean terms, <span class="chat-code">dvd_mul_right 2 (b ^ 2)</span> gives you \(2 \mid 2 \cdot b^2\), and <span class="chat-code">hsq ▸</span> rewrites \(2 \cdot b^2\) to \(a^2\).
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chat input -->
+          <div class="chat-input-area">
+            <button class="chat-quote-btn" title="Quote current proof state">⎀ Quote</button>
+            <div class="chat-input">
+              <span class="chat-input-ghost">Ask about your proof…</span>
+            </div>
+            <button class="chat-send">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>The Chat pane:</strong> Student hit ⌘2 after getting stuck. The agent automatically opens with context — it can see the error and the proof state. <strong>The "Quote" button</strong> (bottom-left of chat input) inserts a snapshot of the current proof state into the conversation, rendered in the same typographic style as the Paper view. The agent also quotes proof state in its responses. This means the mathematical prose style flows through the entire experience — it's not just for the Paper pane. <strong>The conversation is Socratic</strong> — the agent asks "what do you know about primes and products?" before giving the answer. It provides the tactic when asked, but leads with the mathematics.
+</div>
+
+
+<!-- ============================================ -->
+<!-- MODE C: CHAT WITH DEEPER DISCUSSION         -->
+<!-- ============================================ -->
+<div class="stage-label">
+  <div class="stage-number">C</div>
+  <div class="stage-info">
+    <div class="stage-title">Chat Mode — Philosophical Digression</div>
+    <div class="stage-desc">The conversation goes deeper. The student asks about <em>why</em> the proof works. This is where learning happens.</div>
+  </div>
+</div>
+
+<div class="app-frame">
+  <div class="app-titlebar">
+    <span class="titlebar-dot r"></span>
+    <span class="titlebar-dot y"></span>
+    <span class="titlebar-dot g"></span>
+    <span class="titlebar-title">Intuitionist — Irrationality.lean</span>
+  </div>
+  <div class="app-body">
+
+    <!-- LEFT: TACTIC PANE (error fixed, proof progressed) -->
+    <div class="tactic-pane">
+      <div class="tactic-file-tab">
+        <span class="active-tab">Irrationality.lean</span>
+      </div>
+      <div class="tactic-content">
+        <div class="tactic-line">
+          <span class="line-gutter">1</span>
+          <span class="line-content"><span class="kw">theorem</span> <span class="fn">sqrt2_irrational</span> :</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">2</span>
+          <span class="line-content">    <span class="ty">Irrational</span> (<span class="ty">Real</span>.sqrt <span class="nm">2</span>) := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">3</span>
+          <span class="line-content">  <span class="tn">by_contra</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">4</span>
+          <span class="line-content">  <span class="tn">rw</span> [not_irrational_iff] <span class="kw">at</span> h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">5</span>
+          <span class="line-content">  <span class="tn">obtain</span> ⟨a, b, hb, hab⟩ := h</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">6</span>
+          <span class="line-content">  <span class="tn">have</span> hcop := <span class="fn">Int.Coprime.of_reduced</span> a b</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">7</span>
+          <span class="line-content">  <span class="tn">have</span> hsq : a ^ <span class="nm">2</span> = <span class="nm">2</span> * b ^ <span class="nm">2</span> := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">8</span>
+          <span class="line-content">    <span class="tn">field_simp</span> <span class="kw">at</span> hab</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">9</span>
+          <span class="line-content">    <span class="tn">linarith</span> [sq_nonneg a, sq_nonneg b]</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">10</span>
+          <span class="line-content">  <span class="tn">have</span> ha : <span class="nm">2</span> ∣ a := <span class="kw">by</span></span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">11</span>
+          <span class="line-content">    <span class="tn">exact</span> <span class="fn">Int.Prime.dvd_of_dvd_sq</span> ⟨hsq ▸ dvd_mul_right _ _⟩</span>
+        </div>
+        <div class="tactic-line">
+          <span class="line-gutter">12</span>
+          <span class="line-content">  <span class="tn">obtain</span> ⟨k, hk⟩ := ha</span>
+        </div>
+        <div class="tactic-line active">
+          <span class="line-gutter">13</span>
+          <span class="line-content">  <span class="cursor"></span></span>
+        </div>
+      </div>
+      <div class="hyp-bar">
+        <span class="hyp-bar-label">Hyps</span>
+        <span class="hyp-inline"><span class="hn">a b k</span> : ℤ</span>
+        <span class="hyp-inline"><span class="hn">hb</span> : b ≠ 0</span>
+        <span class="hyp-inline"><span class="hn">hcop</span> : gcd a b = 1</span>
+        <span class="hyp-inline"><span class="hn">hsq</span> : a² = 2b²</span>
+        <span class="hyp-inline"><span class="hn">hk</span> : a = 2k</span>
+      </div>
+      <div class="goal-bar">
+        <span class="goal-bar-label">Goal</span>
+        <span class="goal-bar-content">⊥</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: CHAT MODE (deeper discussion) -->
+    <div class="right-pane">
+      <div class="mode-tabs">
+        <div class="mode-tab">
+          Paper <span class="shortcut">⌘1</span>
+        </div>
+        <div class="mode-tab active">
+          Chat <span class="shortcut">⌘2</span>
+        </div>
+      </div>
+      <div class="right-content" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="chat-mode">
+          <div class="chat-messages">
+
+            <div class="msg msg-user">
+              <div class="msg-label">You</div>
+              <div class="msg-bubble">
+                Ok that worked. Now I have a = 2k and I need ⊥. This is the same trick again right? I substitute back and show 2 | b?
+              </div>
+            </div>
+
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                Exactly the same structure. Substitute \(a = 2k\) into \(a^2 = 2b^2\), simplify, and you'll get \(2 \mid b\). Then you have \(2 \mid a\) and \(2 \mid b\), which contradicts \(\gcd(a,b) = 1\).
+              </div>
+            </div>
+
+            <div class="msg msg-user">
+              <div class="msg-label">You</div>
+              <div class="msg-bubble">
+                Something bugs me about this proof. It feels like a trick. We just happened to notice that 2 divides both. Is there a deeper reason why √2 is irrational, or is it really just "assume rational, do some algebra, find a contradiction"?
+              </div>
+            </div>
+
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                That's a really good instinct. The "trick" you're noticing is actually a specific instance of a general phenomenon: the <em>unique factorization</em> of integers.
+
+                The deep reason \(\sqrt{2}\) is irrational is that in the equation \(a^2 = 2b^2\), the left side has an even number of prime factors (everything is squared), but the right side has an odd number (there's that extra 2). Unique factorization says this is impossible.
+
+                This proof by infinite descent — showing both \(a\) and \(b\) are even, so the fraction wasn't reduced — is actually <em>the same argument</em>, just wearing different clothes. The descent can't terminate, which is another way of saying the prime factorization doesn't work out.
+
+                <div class="chat-quote">
+                  <div class="chat-quote-label">Proof structure so far</div>
+                  <div class="cq-step">Assumed \(\sqrt{2} = a/b\) in lowest terms</div>
+                  <div class="cq-step">Derived \(2 \mid a\), wrote \(a = 2k\)</div>
+                  <div class="cq-step" style="color: var(--accent);">Next: substitute back, derive \(2 \mid b\) → contradiction</div>
+                </div>
+
+                Incidentally, this is why the same style of proof works for \(\sqrt{3}\), \(\sqrt{5}\), any \(\sqrt{p}\) for prime \(p\). The "trick" generalizes because the underlying reason is structural.
+              </div>
+            </div>
+
+            <div class="msg msg-user">
+              <div class="msg-label">You</div>
+              <div class="msg-bubble">
+                Oh that's beautiful. The parity of the exponents. Can you prove √2 irrational that way in Lean too — via unique factorization directly?
+              </div>
+            </div>
+
+            <div class="msg msg-agent">
+              <div class="msg-label">Intuitionist</div>
+              <div class="msg-bubble">
+                You can! Mathlib has <span class="chat-code">Nat.Multiplicity</span> and the fundamental theorem of arithmetic. The proof via unique factorization is actually shorter if you're willing to use heavier Mathlib machinery.
+
+                But there's a pedagogical reason to do it the way you're doing it: the descent argument is <em>constructive</em>. You're actually building the witnesses — here's why \(a\) is even, here's why \(b\) is even. The unique factorization proof is more conceptual but less hands-on. For learning Lean and learning proof, the descent is better.
+
+                Finish this version first. Then if you want, we can try the other approach as a second proof.
+              </div>
+            </div>
+
+          </div>
+
+          <div class="chat-input-area">
+            <button class="chat-quote-btn">⎀ Quote</button>
+            <div class="chat-input">
+              <span class="chat-input-ghost">Ask about your proof…</span>
+            </div>
+            <button class="chat-send">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <strong>This is the learning conversation.</strong> The student went from "how do I fix this tactic" to "why does this proof work" to "is there a deeper approach." The agent followed, weaving between Lean specifics and mathematical insight. Notice: the agent quotes the proof structure mid-conversation to anchor the abstract discussion in the concrete proof. <strong>The Quote button</strong> lets the student do this too — "here's where I am, help me think about this part." The chat and the proof aren't separate activities; they're two views of the same process.
+</div>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "\\(", right: "\\)", display: false},
+        {left: "\\[", right: "\\]", display: true}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>
